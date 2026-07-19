@@ -1,0 +1,8 @@
+{% if error %}
+<div class="panel" style="border-color:var(--danger)"><strong>Ошибка:</strong> {{ error }}</div>
+{% elif summary %}
+<div class="panel">
+  <h2 style="margin-top:0">Сводка за период <span class="muted">({{ count }} сообщений)</span></h2>
+  <div class="answer">{{ summary }}</div>
+</div>
+{% endif %}

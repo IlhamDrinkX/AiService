@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Задачи — AI Service System{% endblock %}
+{% block content %}
+<h1>Задачи</h1>
+<p class="muted">Группировка по источнику: оперативные (Service Desk + Fibbee ERP) и стратегические (Tracker).
+  Список по темам/кластерам — следующий шаг (см. functional_plan_ui.md §1.1).</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Недавно обновлённые</h2>
+  <table>
+    <tr><th>Источник</th><th>Ref</th><th>Статус</th><th>Заголовок</th><th>Когда</th></tr>
+    {% for it in recent %}
+    <tr>
+      <td>{{ it.source }}</td>
+      <td><a href="{{ it.url }}" target="_blank">{{ it.ref }}</a></td>
+      <td>{{ it.status }}</td>
+      <td>{{ it.title }}</td>
+      <td class="muted">{{ it.at }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">Все задачи <span id="taskCount" class="muted"></span></h2>
+
+  <form class="inline" id="filterForm" style="margin-bottom:0.8rem">
+    <div class="field">
+      <label>Поиск (ref, заголовок)</label>
+      <input type="text" id="searchBox" placeholder="например: молоко" style="min-width:220px">
+    </div>
+    <div class="field">
+      <label>Группа</label>
+      <select id="filterGroup" multiple size="3" style="min-width:160px"></select>
+    </div>
+    <div class="field">
+      <label>Источник</label>
+      <select id="filterSource" multiple size="3" style="min-width:160px"></select>
+    </div>
+    <div class="field">
+      <label>Статус</label>
+      <select id="filterStatus" multiple size="6" style="min-width:200px"></select>
+    </div>
+    <div class="field">
+      <button type="button" id="clearFilters">Сбросить фильтры</button>
+    </div>
+  </form>
+  <p class="muted">В мультиселектах Ctrl/Cmd+клик — выбрать несколько значений.</p>
+
+  <div style="max-height:640px; overflow-y:auto">
+    <table id="tasksTable">
+      <thead>
+        <tr>
+          <th data-sort="group" style="cursor:pointer">Группа ⇅</th>
+          <th data-sort="source" style="cursor:pointer">Источник ⇅</th>
+          <th data-sort="ref" style="cursor:pointer">Ref ⇅</th>
+          <th data-sort="status" style="cursor:pointer">Статус ⇅</th>
+          <th data-sort="title" style="cursor:pointer">Заголовок ⇅</th>
+          <th data-sort="created_at" style="cursor:pointer">Создано ⇅</th>
+        </tr>
+      </thead>
+      <tbody id="tasksBody"><tr><td colspan="6" class="muted">Загружаю...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let ALL_TASKS = [];
+let sortField = 'created_at';
+let sortDir = -1;
+
+function uniqueValues(field) {
+  return [...new Set(ALL_TASKS.map(t => t[field]).filter(Boolean))].sort();
+}
+
+function populateSelect(id, field) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  uniqueValues(field).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+function selectedValues(id) {
+  return [...document.getElementById(id).selectedOptions].map(o => o.value);
+}
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const groups = selectedValues('filterGroup');
+  const sources = selectedValues('filterSource');
+  const statuses = selectedValues('filterStatus');
+
+  let rows = ALL_TASKS.filter(t => {
+    if (groups.length && !groups.includes(t.group)) return false;
+    if (sources.length && !sources.includes(t.source)) return false;
+    if (statuses.length && !statuses.includes(t.status)) return false;
+    if (search) {
+      const hay = (t.ref + ' ' + t.title + ' ' + t.status + ' ' + t.source).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    const av = (a[sortField] || '').toString();
+    const bv = (b[sortField] || '').toString();
+    return av < bv ? -1 * sortDir : av > bv ? 1 * sortDir : 0;
+  });
+
+  document.getElementById('taskCount').textContent = `(показано ${rows.length} из ${ALL_TASKS.length})`;
+
+  const body = document.getElementById('tasksBody');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">Ничего не найдено по текущим фильтрам</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.slice(0, 1000).map(t => `
+    <tr>
+      <td><span class="badge ${t.group === 'Оперативные' ? 'op' : 'strat'}">${escapeHtml(t.group)}</span></td>
+      <td>${escapeHtml(t.source)}</td>
+      <td><a href="${t.url}" target="_blank">${escapeHtml(t.ref)}</a></td>
+      <td>${escapeHtml(t.status)}</td>
+      <td>${escapeHtml(t.title)}</td>
+      <td class="muted">${escapeHtml(t.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+document.querySelectorAll('#tasksTable th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const field = th.dataset.sort;
+    if (sortField === field) { sortDir *= -1; } else { sortField = field; sortDir = 1; }
+    render();
+  });
+});
+
+['searchBox'].forEach(id => document.getElementById(id).addEventListener('input', render));
+['filterGroup', 'filterSource', 'filterStatus'].forEach(id => document.getElementById(id).addEventListener('change', render));
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('searchBox').value = '';
+  ['filterGroup', 'filterSource', 'filterStatus'].forEach(id => {
+    [...document.getElementById(id).options].forEach(o => o.selected = false);
+  });
+  render();
+});
+
+fetch('/tasks/data').then(r => r.json()).then(data => {
+  ALL_TASKS = data;
+  populateSelect('filterGroup', 'group');
+  populateSelect('filterSource', 'source');
+  populateSelect('filterStatus', 'status');
+  render();
+}).catch(err => {
+  document.getElementById('tasksBody').innerHTML = `<tr><td colspan="6" class="muted">Ошибка загрузки: ${err}</td></tr>`;
+});
+</script>
+{% endblock %}

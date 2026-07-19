@@ -1,0 +1,15 @@
+{% if not health %}
+<p class="muted">Проверка ещё не выполнялась (фоновая проверка идёт раз в 20 минут, первый результат появится вскоре после запуска веб-морды).</p>
+{% else %}
+<p class="muted">Проверено: {{ health.checked_at }} · обновляется в фоне раз в 20 минут</p>
+<table>
+  <tr><th>Источник</th><th>Статус</th><th>Подробности</th></tr>
+  {% for r in health.results %}
+  <tr>
+    <td>{{ r.label }}</td>
+    <td><span class="badge {{ 'ok' if r.ok else '' }}" style="{{ '' if r.ok else 'border-color:var(--danger); color:var(--danger)' }}">{{ 'OK' if r.ok else 'НЕДОСТУПЕН' }}</span></td>
+    <td class="muted">{{ r.detail }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}База знаний — AI Service System{% endblock %}
+{% block content %}
+<h1>База знаний</h1>
+<p class="muted">
+  Проиндексировано чанков: {{ stats.total }} (Drive: {{ stats.get('drive', 0) }}, Discord: {{ stats.get('discord', 0) }}).
+  Обновить индекс: <code>python kb_index.py build</code> (см. README) — заново тратит токены только на изменившиеся данные.
+</p>
+
+<div class="panel">
+  <form class="inline" hx-post="/kb/ask" hx-target="#result" hx-indicator="#spinner">
+    <div class="field" style="flex:1; min-width:320px">
+      <label>Вопрос к базе знаний (Google Drive + Discord)</label>
+      <textarea name="question" placeholder="Например: как настроить VPN-исключения для трекера?" required></textarea>
+    </div>
+    <div class="field">
+      <label>Провайдер</label>
+      <select name="provider">
+        <option value="gemini_direct">Корпоративный Gemini (бесплатно)</option>
+        <option value="openrouter">OpenRouter (платно)</option>
+      </select>
+    </div>
+    <div class="field">
+      <button type="submit">Спросить</button>
+    </div>
+    <span id="spinner" class="htmx-indicator">ищу и отвечаю...</span>
+  </form>
+</div>
+
+<div id="result"></div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var jobId = localStorage.getItem('kb_last_job');
+  if (jobId) {
+    htmx.ajax('GET', '/kb/status/' + jobId, {target: '#result', swap: 'innerHTML'});
+  }
+});
+</script>
+{% endblock %}

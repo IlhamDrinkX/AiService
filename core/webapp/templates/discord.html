@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Discord + мониторинг — AI Service System{% endblock %}
+{% block content %}
+<h1>Discord + мониторинг</h1>
+
+<div class="panel">
+  <h2 style="margin-top:0">Хронология</h2>
+  <form class="inline" id="periodForm">
+    <div class="field">
+      <label>Период, часов</label>
+      <input type="number" name="hours" id="hours" value="24" min="0.5" step="0.5" style="width:6rem">
+    </div>
+    <div class="field">
+      <label>Быстрый выбор</label>
+      <div>
+        <button type="button" onclick="document.getElementById('hours').value=1">1 час</button>
+        <button type="button" onclick="document.getElementById('hours').value=24">Сутки</button>
+        <button type="button" onclick="document.getElementById('hours').value=168">7 дней</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Канал</label>
+      <select name="channel">
+        <option value="">Все каналы</option>
+        {% for c in channels %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Провайдер (для "Обобщить")</label>
+      <select name="provider">
+        <option value="gemini_direct">Корпоративный Gemini (бесплатно)</option>
+        <option value="openrouter">OpenRouter (платно)</option>
+      </select>
+    </div>
+    <div class="field" style="flex:1; min-width:220px">
+      <label>Интересующая тема (необязательно)</label>
+      <input type="text" name="topic" placeholder="например: проблемы с молочкой, сиропный модуль">
+    </div>
+    <div class="field">
+      <button type="button" hx-get="/discord/messages" hx-target="#timeline" hx-include="#periodForm" hx-indicator="#spinner1">Показать</button>
+    </div>
+    <div class="field">
+      <button type="button" hx-post="/discord/summarize" hx-target="#summary" hx-include="#periodForm" hx-swap="innerHTML">Обобщить период</button>
+    </div>
+    <span id="spinner1" class="htmx-indicator">загружаю...</span>
+  </form>
+  <p class="muted">Подсветка: <span class="badge" style="border-color:var(--highlight-mon-border); color:var(--highlight-mon-border)">monitoring team</span>
+    <span class="badge" style="border-color:var(--highlight-svc-border); color:var(--highlight-svc-border)">service team</span>
+    — по ключевым словам, роли ещё не настроены (см. monitoring_config.yaml).</p>
+  <div id="summary"></div>
+  <div id="timeline" style="max-height:500px; overflow-y:auto; margin-top:0.8rem"></div>
+</div>
+
+{% include "_complex_table.html" %}
+<script>
+// filterComplexes/DOMContentLoaded-резюме живут на уровне страницы (не внутри
+// _complex_table.html), потому что панель комплексов целиком подменяется
+// outerHTML-свапом после AI-анализа — DOMContentLoaded к этому моменту уже
+// отработал один раз и повторно не сработает у скрипта, вложенного в свап.
+function filterComplexes() {
+  var q = document.getElementById('complexFilter').value.trim().toLowerCase();
+  var rows = document.querySelectorAll('#complexTable tr');
+  for (var i = 1; i < rows.length; i++) {  // пропускаем заголовок
+    var text = rows[i].textContent.toLowerCase();
+    rows[i].style.display = (!q || text.indexOf(q) !== -1) ? '' : 'none';
+  }
+}
+document.addEventListener('DOMContentLoaded', function () {
+  var summaryJobId = localStorage.getItem('discord_summary_last_job');
+  if (summaryJobId) {
+    htmx.ajax('GET', '/discord/summarize/status/' + summaryJobId, {target: '#summary', swap: 'innerHTML'});
+  }
+  var analysisJobId = localStorage.getItem('complex_analysis_last_job');
+  if (analysisJobId) {
+    htmx.ajax('GET', '/discord/analyze/status/' + analysisJobId, {target: '#complexPanel', swap: 'outerHTML'});
+  }
+});
+</script>
+
+<div class="panel">
+  <h2 style="margin-top:0">Тикеты Fibbee ERP <span class="muted">(за 7 дней)</span></h2>
+  <table>
+    <tr><th>Ref</th><th>Статус</th><th>Заголовок</th></tr>
+    {% for t in fibbee_tickets %}
+    <tr>
+      <td><a href="{{ t.url }}" target="_blank">{{ t.ref }}</a></td>
+      <td>{{ t.status }}</td>
+      <td>{{ t.title }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

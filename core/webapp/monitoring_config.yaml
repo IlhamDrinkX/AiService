@@ -1,0 +1,22 @@
+# Подсветка упоминаний monitoring/service team в Discord-хронологии (модуль 3).
+#
+# role_ids — самый надёжный способ (совпадает с реальным <@&ID> в тексте
+# сообщения), но ID ролей не подтверждены пользователем — узнать: Discord →
+# Настройки сервера → Роли → включить Developer Mode (User Settings →
+# Advanced) → ПКМ по роли → Copy Role ID. Впиши сюда, когда узнаешь.
+#
+# text_patterns — fallback, работает уже сейчас без доп. настройки: обычный
+# regex (без учёта регистра) по тексту сообщения.
+
+monitoring:
+  role_ids: []
+  text_patterns:
+    - "monitoring"
+    - "мониторинг"
+
+service:
+  role_ids: []
+  text_patterns:
+    - "service team"
+    - "сервис[- ]?команд"
+    - "сервисная команда"

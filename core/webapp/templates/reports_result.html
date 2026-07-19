@@ -1,0 +1,31 @@
+{% if error %}
+<div class="panel" style="border-color:var(--danger)"><strong>Ошибка:</strong> {{ error }}</div>
+{% else %}
+<div class="panel">
+  <h2 style="margin-top:0">Ответ <span class="muted">({{ items|length }} источников учтено)</span></h2>
+  <div class="answer">{{ answer_html | safe }}</div>
+  {% if chart_json %}
+  <canvas id="reportChart" style="max-width:800px; margin-top:1rem"></canvas>
+  <script>
+    (function() {
+      const canvas = document.getElementById('reportChart');
+      const chart = {{ chart_json | safe }};
+      new Chart(canvas, {
+        type: chart.type || 'bar',
+        data: { labels: chart.labels || [], datasets: chart.datasets || [] },
+        options: {
+          plugins: {
+            title: { display: !!chart.title, text: chart.title || '', color: '#e4e6eb' },
+            legend: { labels: { color: '#e4e6eb' } }
+          },
+          scales: {
+            x: { ticks: { color: '#9aa0ac' }, grid: { color: '#2e313d' } },
+            y: { ticks: { color: '#9aa0ac' }, grid: { color: '#2e313d' } }
+          }
+        }
+      });
+    })();
+  </script>
+  {% endif %}
+</div>
+{% endif %}

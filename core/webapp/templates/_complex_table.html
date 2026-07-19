@@ -1,0 +1,42 @@
+<div class="panel" id="complexPanel">
+  <h2 style="margin-top:0">Комплексы <span class="muted">(по данным последней синхронизации Fibbee)</span></h2>
+  <p class="muted">
+    <input type="text" id="complexFilter" placeholder="Фильтр по названию/бренду/городу..." style="width:280px" oninput="filterComplexes()">
+    — полностью скрыть комплекс из этой таблицы навсегда: <code>core/webapp/complex_ignore.yaml</code>.
+  </p>
+  <p>
+    <button type="button" hx-post="/discord/analyze" hx-target="#complexPanel" hx-swap="outerHTML"
+      hx-confirm="Запустить AI-анализ через corporate Gemini? Разбирает открытые тикеты и долю неудачных заказов по каждому комплексу батчами — может занять пару минут на 90+ комплексов.">
+      Проанализировать сейчас (AI)
+    </button>
+    {% if analysis_generated_at %}
+    <span class="muted">последний анализ: {{ analysis_generated_at }}</span>
+    {% else %}
+    <span class="muted">AI-анализ ещё не запускался</span>
+    {% endif %}
+    {% if analysis_errors %}
+    <span class="badge danger">ошибки в {{ analysis_errors|length }} батч(ах) последнего анализа</span>
+    {% endif %}
+  </p>
+  <table id="complexTable">
+    <tr><th>AI</th><th>Название</th><th>Бренд</th><th>Город</th><th>Статус</th><th>Обновлено</th><th></th></tr>
+    {% for sp in sales_points %}
+    <tr class="{{ 'row-critical' if sp.ai_level == 'critical' else ('row-warning' if sp.ai_level == 'warning' else '') }}"
+        {% if sp.ai_reason %}title="{{ sp.ai_reason }}"{% endif %}>
+      <td>
+        {% if sp.ai_level == 'critical' %}<span class="badge danger">красный</span>
+        {% elif sp.ai_level == 'warning' %}<span class="badge warn">жёлтый</span>
+        {% elif sp.ai_level == 'ok' %}<span class="badge ok">ок</span>
+        {% else %}<span class="muted">—</span>
+        {% endif %}
+      </td>
+      <td>{{ sp.name_ru }}</td>
+      <td>{{ sp.brand }}</td>
+      <td>{{ sp.city_id }}</td>
+      <td><span class="badge {{ 'ok' if sp.status == 'production' else '' }}">{{ sp.status }}</span></td>
+      <td class="muted">{{ sp.updated_at }}</td>
+      <td><a href="/discord/dashboard/{{ sp.sales_point_id }}" target="_blank">Дашборд →</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>

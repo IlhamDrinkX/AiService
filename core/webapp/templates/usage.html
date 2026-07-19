@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Токены — AI Service System{% endblock %}
+{% block content %}
+<h1>Расход токенов и баланс OpenRouter</h1>
+
+{% if key_error %}
+<div class="panel" style="border-color:var(--danger)"><strong>Ошибка:</strong> {{ key_error }}</div>
+{% elif key_info %}
+<div class="grid-2">
+  <div class="panel">
+    <h2 style="margin-top:0">Баланс ключа</h2>
+    <table>
+      <tr><td>Лимит</td><td>{{ key_info.limit if key_info.limit is not none else 'не ограничен' }}</td></tr>
+      <tr><td>Остаток</td><td>{{ key_info.limit_remaining if key_info.limit_remaining is not none else 'не ограничен' }}</td></tr>
+      <tr><td>Потрачено всего</td><td>{{ key_info.usage }}</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Потрачено за период</h2>
+    <table>
+      <tr><td>Сегодня</td><td>{{ key_info.usage_daily }}</td></tr>
+      <tr><td>Эта неделя</td><td>{{ key_info.usage_weekly }}</td></tr>
+      <tr><td>Этот месяц</td><td>{{ key_info.usage_monthly }}</td></tr>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2 style="margin-top:0">Расход по дням <span class="muted">(по логу вызовов этого приложения — logs/router_ai_usage.csv)</span></h2>
+  {% if stats.daily %}
+  <canvas id="usageChart" height="80"></canvas>
+  {% if not stats.cost_known %}
+  <p class="muted">Провайдер не вернул стоимость по этим вызовам — показаны только токены. Общий баланс/остаток см. выше, он от OpenRouter напрямую.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted">Лог пуст — этот процесс приложения ещё не делал вызовов моделей.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">По провайдеру <span class="muted">(куда реально уходят вызовы — OpenRouter платно, gemini_direct бесплатно)</span></h2>
+  <table>
+    <tr><th>Провайдер</th><th>Вызовов</th><th>Токенов</th><th>$</th></tr>
+    {% for p in stats.by_provider %}
+    <tr><td>{{ p.provider }}</td><td>{{ p.calls }}</td><td>{{ p.tokens }}</td><td>{{ "%.4f"|format(p.cost) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% if stats.estimated_savings_usd %}
+  <p class="muted">Оценка: если бы вызовы через gemini_direct шли через OpenRouter по средней цене той же модели — они бы стоили ~${{ "%.4f"|format(stats.estimated_savings_usd) }}. Грубая оценка по историческим ценам, не гарантия.</p>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <h2 style="margin-top:0">По типу задачи</h2>
+    <table>
+      <tr><th>Задача</th><th>Вызовов</th><th>Токенов</th><th>$</th></tr>
+      {% for t in stats.by_task %}
+      <tr><td>{{ t.task }}</td><td>{{ t.calls }}</td><td>{{ t.tokens }}</td><td>{{ "%.4f"|format(t.cost) }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">По модели</h2>
+    <table>
+      <tr><th>Модель</th><th>Вызовов</th><th>Токенов</th><th>$</th></tr>
+      {% for m in stats.by_model %}
+      <tr><td>{{ m.model }}</td><td>{{ m.calls }}</td><td>{{ m.tokens }}</td><td>{{ "%.4f"|format(m.cost) }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<p class="muted">Итого по логу: {{ stats.total_calls }} вызовов, {{ stats.total_tokens }} токенов, ${{ "%.4f"|format(stats.total_cost) }}.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Доступность источников
+    <button type="button" hx-post="/health/check-now" hx-target="#healthPanel" hx-swap="innerHTML" style="font-size:0.8rem; padding:0.25rem 0.6rem; margin-left:0.6rem">Проверить сейчас</button>
+  </h2>
+  <div id="healthPanel">
+    {% include "_health_panel.html" %}
+  </div>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">Управление</h2>
+  <div class="inline" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center">
+    <button type="button" hx-post="/admin/sync/drive" hx-target="#adminResult" hx-swap="innerHTML" hx-confirm="Запустить синхронизацию Google Drive вне расписания?">Синхронизировать Drive сейчас</button>
+    <button type="button" hx-post="/admin/restart" hx-target="#adminResult" hx-swap="innerHTML" hx-confirm="Перезапустить веб-морду? Текущие открытые страницы обновятся через несколько секунд.">Перезапустить</button>
+    <button type="button" hx-post="/admin/stop" hx-target="#adminResult" hx-swap="innerHTML" hx-confirm="Остановить веб-морду? Придётся запускать вручную (или через ярлык автозагрузки при следующем входе в систему)." style="background:var(--danger); border-color:var(--danger)">Выключить</button>
+    <button type="button" hx-post="/admin/stop_all" hx-target="#adminResult" hx-swap="innerHTML" hx-confirm="Остановить ВСЁ: веб-морду, Discord-бота и планировщик синхронизации? Мониторинг Discord и ночные синхронизации перестанут работать до ручного перезапуска (или следующего входа в систему)." style="background:var(--danger); border-color:var(--danger)">Остановить всё (веб + Discord-бот + планировщик)</button>
+  </div>
+  <p class="muted">
+    Автостоп по закрытию вкладки браузера сознательно не сделан: тот же
+    обработчик срабатывает и на обновление страницы, так что случайно убивал
+    бы всегда-работающего Discord-бота при обычном F5. Используй кнопку выше.
+  </p>
+  <div id="adminResult" style="margin-top:0.8rem"></div>
+</div>
+
+{% if stats.daily %}
+<script>
+const chartData = {{ chart_json | safe }};
+const ctx = document.getElementById('usageChart');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: chartData.labels,
+    datasets: [{
+      label: 'Токены/день',
+      data: chartData.tokens,
+      backgroundColor: '#6ea8fe',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#e4e6eb' } } },
+    scales: {
+      x: { ticks: { color: '#9aa0ac' }, grid: { color: '#2e313d' } },
+      y: { ticks: { color: '#9aa0ac' }, grid: { color: '#2e313d' } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

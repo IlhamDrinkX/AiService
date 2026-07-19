@@ -1,0 +1,7 @@
+<div id="{{ poll_id }}" hx-get="{{ poll_url }}" hx-trigger="load delay:1000ms" hx-swap="outerHTML">
+  <div class="panel job-progress">
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <p class="muted" style="margin:0">{{ label }} — можно уйти на другую страницу, результат появится здесь по возвращении.</p>
+  </div>
+</div>
+<script>localStorage.setItem({{ storage_key | tojson }}, {{ job_id | tojson }});</script>

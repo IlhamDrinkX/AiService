@@ -1,0 +1,4 @@
+<div class="panel" style="{{ '' if result.ok else 'border-color:var(--danger)' }}">
+  <strong>{{ 'Готово' if result.ok else 'Ошибка' }}</strong>
+  <pre style="white-space:pre-wrap; margin-top:0.5rem; font-size:0.82rem">{{ result.output }}</pre>
+</div>

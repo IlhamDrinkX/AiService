@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI Service System{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">AI Service System</span>
+    <nav>
+      <a href="/tasks" class="{{ 'active' if active == 'tasks' else '' }}">Задачи</a>
+      <a href="/reports" class="{{ 'active' if active == 'reports' else '' }}">Отчёты</a>
+      <a href="/kb" class="{{ 'active' if active == 'kb' else '' }}">База знаний</a>
+      <a href="/discord" class="{{ 'active' if active == 'discord' else '' }}">Discord + мониторинг</a>
+      <a href="/usage" class="{{ 'active' if active == 'usage' else '' }}">Токены</a>
+      <a href="/help" class="{{ 'active' if active == 'help' else '' }}">Помощь</a>
+    </nav>
+  </header>
+  <main>
+    <div id="healthBanner" hx-get="/health/banner" hx-trigger="load, every 60s" hx-swap="innerHTML"></div>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

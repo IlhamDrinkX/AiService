@@ -1,0 +1,14 @@
+{% if not messages %}
+<p class="muted">Нет сообщений за выбранный период.</p>
+{% else %}
+<p class="muted">{{ messages|length }} сообщений</p>
+{% for m in messages %}
+<div class="msg {{ m.highlight or '' }}">
+  <div class="meta">
+    #{{ m.channel_name }} · {{ m.author_name }} · {{ m.created_at }}
+    · <a href="{{ m.url }}" target="_blank">открыть в Discord</a>
+  </div>
+  <div>{{ m.content }}</div>
+</div>
+{% endfor %}
+{% endif %}

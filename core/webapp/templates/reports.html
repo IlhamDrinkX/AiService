@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Отчёты — AI Service System{% endblock %}
+{% block content %}
+<h1>Сводные отчёты</h1>
+<p class="muted">Вопрос по заявкам/тикетам/задачам за период — ответ со ссылками на источники, на основе которых сделаны выводы.</p>
+
+<div class="panel">
+  <form class="inline">
+    <div class="field">
+      <label>Источник</label>
+      <select name="source">
+        <option value="all">Все источники</option>
+        <option value="servicedesk">Service Desk</option>
+        <option value="fibbee">Fibbee ERP</option>
+        <option value="tracker">Tracker</option>
+        <option value="discord">Discord</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Период (дней)</label>
+      <input type="number" name="days" value="7" min="0" step="0.5" style="width:5rem">
+    </div>
+    <div class="field">
+      <label>Уровень модели</label>
+      <select name="tier" id="tier-select" onchange="onTierChange()">
+        <option value="nano">nano (дёшево)</option>
+        <option value="flash" selected>flash</option>
+        <option value="pro">pro (сложные вопросы)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Провайдер</label>
+      <select name="provider" id="provider-select">
+        <option value="gemini_direct">Корпоративный Gemini (бесплатно)</option>
+        <option value="openrouter">OpenRouter (платно)</option>
+      </select>
+      <span class="muted" id="provider-note" style="display:none">на pro всегда OpenRouter — бесплатного Claude не бывает</span>
+    </div>
+    <div class="field" style="flex:1; min-width:260px">
+      <label>Вопрос (необязательно — по умолчанию общая сводка)</label>
+      <textarea name="question" placeholder="Например: что чаще всего ломается на точках ВкусВилл за неделю?"></textarea>
+    </div>
+    <div class="field">
+      <button type="submit" hx-post="/reports/generate" hx-target="#result" hx-indicator="#spinner" hx-include="closest form">Спросить</button>
+    </div>
+    <div class="field">
+      <button type="submit" formaction="/reports/download" formtarget="_blank">Скачать HTML</button>
+    </div>
+    <span id="spinner" class="htmx-indicator">думаю...</span>
+  </form>
+</div>
+
+<div id="result"></div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var jobId = localStorage.getItem('reports_last_job');
+  if (jobId) {
+    htmx.ajax('GET', '/reports/status/' + jobId, {target: '#result', swap: 'innerHTML'});
+  }
+});
+function onTierChange() {
+  const tier = document.getElementById('tier-select').value;
+  const providerSelect = document.getElementById('provider-select');
+  const note = document.getElementById('provider-note');
+  if (tier === 'pro') {
+    providerSelect.value = 'openrouter';
+    providerSelect.disabled = true;
+    note.style.display = 'inline';
+  } else {
+    providerSelect.disabled = false;
+    note.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

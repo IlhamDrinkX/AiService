@@ -1,0 +1,11 @@
+{% if broken %}
+<div class="panel" style="border-color:var(--danger); background:#2a1416; margin-bottom:1rem">
+  <strong style="color:var(--danger)">Нет подключения: {{ broken|length }} из {{ status.results|length }}</strong>
+  <span class="muted"> (проверено {{ status.checked_at }})</span>
+  <ul style="margin:0.4rem 0 0; padding-left:1.2rem">
+    {% for b in broken %}
+    <li><strong>{{ b.label }}</strong> — {{ b.detail }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
