@@ -695,10 +695,7 @@ def discord_summarize(
 def discord_summarize_status(request: Request, job_id: str):
     job = jobs.get_job(job_id)
     if job is None:
-        return templates.TemplateResponse(
-            request, "discord_summary.html",
-            {"summary": None, "error": "Задача не найдена (веб-морда перезапускалась?) — запроси заново."},
-        )
+        return _stale_job_response("discord_summary_last_job")
     if job["status"] == "running":
         return templates.TemplateResponse(
             request, "_job_poll.html",
