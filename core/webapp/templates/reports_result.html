@@ -1,8 +1,8 @@
 {% if error %}
 <div class="panel" style="border-color:var(--danger)"><strong>Ошибка:</strong> {{ error }}</div>
 {% else %}
-<div class="panel">
-  <h2 style="margin-top:0">Ответ <span class="muted">({{ items|length }} источников учтено)</span></h2>
+<details class="panel" open>
+  <summary><h2 style="margin:0; display:inline">Ответ <span class="muted">({{ items|length }} источников учтено)</span></h2></summary>
   <div class="answer">{{ answer_html | safe }}</div>
   {% if chart_json %}
   <canvas id="reportChart" style="max-width:800px; margin-top:1rem"></canvas>
@@ -27,5 +27,5 @@
     })();
   </script>
   {% endif %}
-</div>
+</details>
 {% endif %}
